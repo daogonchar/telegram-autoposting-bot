@@ -8,6 +8,9 @@ from aiogram.types import Message
 from aiogram.enums import ContentType
 from openai import AsyncOpenAI
 from pydub import AudioSegment
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = Router()
 
