@@ -1,33 +1,40 @@
 import os
-import asyncio
-from aiogram import Bot, Dispatcher, types, F
-from aiogram.types import Message
-from aiogram.enums import ParseMode
-from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.client.default import DefaultBotProperties
-from aiogram import Router
+from aiogram import Bot, Dispatcher, types
+from aiogram.types import Update
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+from aiohttp import web
 from dotenv import load_dotenv
 
-# Загрузка переменных окружения
 load_dotenv()
-API_TOKEN = os.getenv("API_TOKEN")
 
-# Инициализация бота
-bot = Bot(token=API_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
-dp = Dispatcher(storage=MemoryStorage())
-router = Router()
+BOT_TOKEN = os.getenv("BOT_TOKEN")
+WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
+WEBHOOK_PATH = f"/webhook/{WEBHOOK_SECRET}"
+PORT = int(os.getenv("PORT", 10000))
 
-# 📌 Обработка команды /start
-@router.message(F.text == "/start")
-async def start_handler(message: Message):
-    await message.answer("👋 Привет! Бот запущен и готов к работе.")
+bot = Bot(token=BOT_TOKEN)
+dp = Dispatcher()
 
-# Регистрация роутера
-dp.include_router(router)
+@dp.message()
+async def handle_message(message: types.Message):
+    await message.answer("Привет! Я на вебхуках и работаю исправно 😉")
 
-# Запуск бота
-async def main():
-    await dp.start_polling(bot)
+async def on_startup(app):
+    webhook_url = f"{os.getenv('RENDER_EXTERNAL_URL')}{WEBHOOK_PATH}"
+    await bot.set_webhook(webhook_url)
+    print(f"Webhook установлен на {webhook_url}")
+
+async def on_shutdown(app):
+    await bot.delete_webhook()
+
+app = web.Application()
+app["bot"] = bot
+
+SimpleRequestHandler(dispatcher=dp, bot=bot).register(app, path=WEBHOOK_PATH)
+
+app.on_startup.append(on_startup)
+app.on_shutdown.append(on_shutdown)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    setup_application(app, dp, bot=bot)
+    web.run_app(app, port=PORT)
