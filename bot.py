@@ -1,16 +1,17 @@
 import logging
 import os
-from aiogram import Bot, Dispatcher, types
+import tempfile
+
+from aiogram import Bot, Dispatcher, types, Router
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Message
-from aiogram import Router
 from aiogram.client.default import DefaultBotProperties
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
+from aiogram.filters import Command
 from aiohttp import web
 from dotenv import load_dotenv
 import openai
-import tempfile
 import aiohttp
 
 load_dotenv()
@@ -22,7 +23,7 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 router = Router()
 
-@router.message(commands=["start"])
+@router.message(Command("start"))
 async def cmd_start(message: Message):
     await message.answer("Привет! Я на вебхуках и работаю исправно 😉")
 
@@ -39,9 +40,9 @@ async def handle_voice_or_text(message: Message, bot: Bot):
                     tmp_file.write(await response.read())
                     tmp_file_path = tmp_file.name
 
-        audio_file = open(tmp_file_path, "rb")
-        transcript = openai.Audio.transcribe("whisper-1", audio_file)
-        await message.answer(f"Расшифровка: {transcript['text']}")
+        with open(tmp_file_path, "rb") as audio_file:
+            transcript = openai.Audio.transcribe("whisper-1", audio_file)
+            await message.answer(f"Расшифровка: {transcript['text']}")
 
     elif message.text:
         await message.answer(f"Вы написали: {message.text}")
