@@ -1,1 +1,9 @@
+aiogram==3.19.0
+fastapi
+uvicorn
+python-dotenv
+openai
+aiohttp
+aiofiles
+pydub
 
