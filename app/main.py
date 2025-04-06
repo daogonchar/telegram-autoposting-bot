@@ -1,4 +1,3 @@
-# app/main.py
 import os
 import logging
 from dotenv import load_dotenv
@@ -6,7 +5,7 @@ from fastapi import FastAPI
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.webhook.aiohttp_server import TokenBasedRequestHandler
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler
 from aiogram.client.default import DefaultBotProperties
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
@@ -24,7 +23,7 @@ PORT = int(os.getenv("PORT", 10000))
 # Инициализация бота и диспетчера
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(storage=MemoryStorage())
-dp.include_router(router)  # Подключаем роутер ОДИН раз
+dp.include_router(router)  # Подключаем один раз
 
 # Инициализация FastAPI
 app = FastAPI()
@@ -40,11 +39,9 @@ app.add_middleware(
 async def on_startup():
     await bot.set_webhook(WEBHOOK_URL)
 
-# Регистрируем хендлер для приёма вебхуков от Telegram
-from aiogram.webhook.aiohttp_server import SimpleRequestHandler
-app.router.routes.append(
-    SimpleRequestHandler(dispatcher=dp, bot=bot, secret_token=WEBHOOK_SECRET).get_route()
-)
+# Регистрируем хендлер вебхука
+handler = SimpleRequestHandler(dispatcher=dp, bot=bot, secret_token=WEBHOOK_SECRET)
+app.add_api_route(WEBHOOK_PATH, handler, methods=["POST"])
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
