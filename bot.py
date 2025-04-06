@@ -6,24 +6,24 @@ import asyncio
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message
 from aiogram.client.default import DefaultBotProperties
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiogram.filters import Command
 from aiohttp import web
 from dotenv import load_dotenv
-import openai
 import aiohttp
+from openai import AsyncOpenAI
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
 WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_URL") + "/" + WEBHOOK_SECRET
-CHANNEL_ID = os.getenv("CHANNEL_ID")
-openai.api_key = os.getenv("OPENAI_API_KEY")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 router = Router()
+openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
 
 @router.message(Command("start"))
 async def cmd_start(message: Message):
@@ -32,6 +32,8 @@ async def cmd_start(message: Message):
 @router.message()
 async def handle_voice_or_text(message: Message, bot: Bot):
     if message.voice:
+        await message.answer("🎙 Получил голосовое, обрабатываю...")
+
         file_info = await bot.get_file(message.voice.file_id)
         file_path = file_info.file_path
         file_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
@@ -43,30 +45,14 @@ async def handle_voice_or_text(message: Message, bot: Bot):
                     tmp_file_path = tmp_file.name
 
         with open(tmp_file_path, "rb") as audio_file:
-            transcript = openai.Audio.transcribe("whisper-1", audio_file)
-            user_text = transcript['text']
+            transcription = await openai_client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file
+            )
+            await message.answer(f"Расшифровка: {transcription.text}")
 
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",
-            messages=[{"role": "user", "content": user_text}]
-        )
-        bot_reply = response.choices[0].message['content']
-
-        keyboard = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Опубликовать в канал", callback_data=f"post_to_channel:{bot_reply}")]
-        ])
-
-        await message.answer(f"📝 Расшифровка: <i>{user_text}</i>\n\n🤖 Ответ: {bot_reply}", reply_markup=keyboard)
     elif message.text:
-        await message.answer("Пожалуйста, пришлите голосовое сообщение 🎙")
-
-@router.callback_query()
-async def handle_callback(callback_query: types.CallbackQuery, bot: Bot):
-    data = callback_query.data
-    if data.startswith("post_to_channel:"):
-        bot_reply = data[len("post_to_channel:"):]
-        await bot.send_message(chat_id=CHANNEL_ID, text=bot_reply)
-        await callback_query.answer("✅ Сообщение опубликовано в канале.")
+        await message.answer(f"Вы написали: {message.text}")
 
 async def main():
     bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
@@ -82,4 +68,5 @@ async def main():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    asyncio.run(web._run_app(main(), port=int(os.getenv("PORT"))))
+    app = asyncio.run(main())
+    web.run_app(app, port=int(os.getenv("PORT")))
