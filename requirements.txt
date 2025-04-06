@@ -1,5 +1,0 @@
-aiogram==3.19.0
-python-dotenv==1.1.0
-openai==1.14.3
-aiofiles==24.1.0
-pydub==0.25.1
