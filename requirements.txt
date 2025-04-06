@@ -1,8 +1,5 @@
 aiogram==3.19.0
-aiohttp==3.11.16
-fastapi==0.110.1
-uvicorn==0.29.0
-python-dotenv==1.1.0
-openai==1.14.3
-pydub==0.25.1
-aiofiles==24.1.0
+python-dotenv
+openai==0.28
+aiofiles
+pydub
