@@ -6,7 +6,7 @@ import asyncio
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.types import Message
+from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.client.default import DefaultBotProperties
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiogram.filters import Command
@@ -21,12 +21,13 @@ BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
 WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_URL") + "/" + WEBHOOK_SECRET
 openai.api_key = os.getenv("OPENAI_API_KEY")
+CHANNEL_ID = os.getenv("CHANNEL_ID")
 
 router = Router()
 
 @router.message(Command("start"))
 async def cmd_start(message: Message):
-    await message.answer("Привет! Я на вебхуках и работаю исправно 😉")
+    await message.answer("Привет! Я на вебхуках и жду вашу голосовую заметку 🎙")
 
 @router.message()
 async def handle_voice_or_text(message: Message, bot: Bot):
@@ -43,10 +44,29 @@ async def handle_voice_or_text(message: Message, bot: Bot):
 
         with open(tmp_file_path, "rb") as audio_file:
             transcript = openai.Audio.transcribe("whisper-1", audio_file)
-            await message.answer(f"Расшифровка: {transcript['text']}")
+            user_text = transcript['text']
 
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[{"role": "user", "content": user_text}]
+        )
+        bot_reply = response.choices[0].message['content']
+
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="Опубликовать в канал", callback_data=f"post_to_channel:{bot_reply}")]
+        ])
+
+        await message.answer(f"📝 Расшифровка: <i>{user_text}</i>\n\n🤖 Ответ: {bot_reply}", reply_markup=keyboard)
     elif message.text:
-        await message.answer(f"Вы написали: {message.text}")
+        await message.answer("Пожалуйста, пришлите голосовое сообщение 🎙")
+
+@router.callback_query()
+async def handle_callback(callback_query: types.CallbackQuery, bot: Bot):
+    data = callback_query.data
+    if data.startswith("post_to_channel:"):
+        bot_reply = data[len("post_to_channel:"):]
+        await bot.send_message(chat_id=CHANNEL_ID, text=bot_reply)
+        await callback_query.answer("✅ Сообщение опубликовано в канале.")
 
 async def main():
     bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
