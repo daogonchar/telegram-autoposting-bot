@@ -1,5 +1,6 @@
 aiogram==3.19.0
-python-dotenv
+python-dotenv==1.1.0
 openai==0.28
-aiofiles
-pydub
+pydub==0.25.1
+fastapi==0.110.0
+uvicorn==0.29.0
