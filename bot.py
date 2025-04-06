@@ -23,7 +23,9 @@ WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_URL") + "/" + WEBHOOK_SECRET
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
 router = Router()
-openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+
+# Используем актуальную версию клиента OpenAI без параметра proxies
+openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY, http_client=None)
 
 @router.message(Command("start"))
 async def cmd_start(message: Message):
