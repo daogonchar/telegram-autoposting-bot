@@ -6,8 +6,8 @@ from fastapi import FastAPI
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
-from aiogram.client.default import DefaultBotProperties
 from aiogram.webhook.aiohttp_server import TokenBasedRequestHandler
+from aiogram.client.default import DefaultBotProperties
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 
@@ -24,7 +24,7 @@ PORT = int(os.getenv("PORT", 10000))
 # Инициализация бота и диспетчера
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(storage=MemoryStorage())
-dp.include_router(router)
+dp.include_router(router)  # Подключаем роутер ОДИН раз
 
 # Инициализация FastAPI
 app = FastAPI()
@@ -40,19 +40,10 @@ app.add_middleware(
 async def on_startup():
     await bot.set_webhook(WEBHOOK_URL)
 
-# Хак: оборачиваем aiohttp TokenBasedRequestHandler в ASGI совместимый view
-from starlette.responses import PlainTextResponse
-from starlette.requests import Request
-from starlette.routing import Route
-
-handler = TokenBasedRequestHandler(dispatcher=dp, bot=bot)
-
-async def webhook_proxy(request: Request):
-    # Оборачиваем Starlette-запрос в aiohttp совместимый объект
-    return await handler.handle(request.scope, request.receive, request.send)
-
+# Регистрируем хендлер для приёма вебхуков от Telegram
+from aiogram.webhook.aiohttp_server import SimpleRequestHandler
 app.router.routes.append(
-    Route(WEBHOOK_PATH, webhook_proxy, methods=["POST"])
+    SimpleRequestHandler(dispatcher=dp, bot=bot, secret_token=WEBHOOK_SECRET).get_route()
 )
 
 if __name__ == "__main__":
