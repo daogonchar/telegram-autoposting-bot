@@ -7,7 +7,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
-from aiogram.webhook.fastapi import SimpleRequestHandler
+from aiogram.webhook.aiohttp_server import TokenBasedRequestHandler
 from starlette.middleware.cors import CORSMiddleware
 import uvicorn
 
@@ -40,11 +40,19 @@ app.add_middleware(
 async def on_startup():
     await bot.set_webhook(WEBHOOK_URL)
 
-# Правильный способ подключения обработчика вебхука
-app.add_route(
-    path=WEBHOOK_PATH,
-    route=SimpleRequestHandler(dispatcher=dp, bot=bot),
-    methods=["POST"]
+# Хак: оборачиваем aiohttp TokenBasedRequestHandler в ASGI совместимый view
+from starlette.responses import PlainTextResponse
+from starlette.requests import Request
+from starlette.routing import Route
+
+handler = TokenBasedRequestHandler(dispatcher=dp, bot=bot)
+
+async def webhook_proxy(request: Request):
+    # Оборачиваем Starlette-запрос в aiohttp совместимый объект
+    return await handler.handle(request.scope, request.receive, request.send)
+
+app.router.routes.append(
+    Route(WEBHOOK_PATH, webhook_proxy, methods=["POST"])
 )
 
 if __name__ == "__main__":
