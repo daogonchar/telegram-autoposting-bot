@@ -1,6 +1,7 @@
 import logging
 import os
 import tempfile
+import asyncio
 
 from aiogram import Bot, Dispatcher, types, Router
 from aiogram.enums import ParseMode
@@ -61,4 +62,5 @@ async def main():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    web.run_app(main())
+    app = asyncio.run(main())
+    web.run_app(app, port=int(os.getenv("PORT")))
