@@ -20,8 +20,8 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET")
 WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_URL") + "/" + WEBHOOK_SECRET
-openai.api_key = os.getenv("OPENAI_API_KEY")
 CHANNEL_ID = os.getenv("CHANNEL_ID")
+openai.api_key = os.getenv("OPENAI_API_KEY")
 
 router = Router()
 
@@ -82,5 +82,4 @@ async def main():
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-    app = asyncio.run(main())
-    web.run_app(app, port=int(os.getenv("PORT")))
+    asyncio.run(web._run_app(main(), port=int(os.getenv("PORT"))))
