@@ -1,5 +1,3 @@
-# app/routers.py
-
 import os
 import tempfile
 import logging
@@ -8,15 +6,12 @@ from aiogram.types import Message
 from aiogram.enums import ContentType
 from openai import AsyncOpenAI
 from pydub import AudioSegment
-from dotenv import load_dotenv
-
-load_dotenv()
 
 router = Router()
 
-# Инициализация OpenAI клиента
+# Инициализация OpenAI клиента без передачи http_client (во избежание ошибки с proxies)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY)
+openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY, http_client=None)
 
 @router.message(F.text)
 async def handle_text(message: Message):
@@ -29,7 +24,7 @@ async def handle_voice(message: Message, bot):
         file_info = await bot.get_file(message.voice.file_id)
         file_path = file_info.file_path
 
-        # Скачивание файла
+        # Скачивание файла во временный .oga файл
         with tempfile.NamedTemporaryFile(delete=False, suffix=".oga") as tmp_oga:
             await bot.download_file(file_path, destination=tmp_oga)
             oga_path = tmp_oga.name
@@ -38,7 +33,7 @@ async def handle_voice(message: Message, bot):
         mp3_path = oga_path.replace(".oga", ".mp3")
         AudioSegment.from_file(oga_path).export(mp3_path, format="mp3")
 
-        # Отправка в OpenAI
+        # Отправка в OpenAI для расшифровки
         with open(mp3_path, "rb") as audio_file:
             transcript = await openai_client.audio.transcriptions.create(
                 model="whisper-1",
@@ -47,7 +42,7 @@ async def handle_voice(message: Message, bot):
 
         await message.answer(f"Расшифровка: {transcript.text}")
 
-        # Очистка временных файлов
+        # Удаление временных файлов
         os.remove(oga_path)
         os.remove(mp3_path)
 
