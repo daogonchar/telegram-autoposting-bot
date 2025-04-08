@@ -11,7 +11,7 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Update
 import uvicorn
 
-from app.routers import router
+from app.routers import get_router  # Импортируем функцию, а не router напрямую
 
 load_dotenv()
 
@@ -21,12 +21,10 @@ WEBHOOK_PATH = f"/{WEBHOOK_SECRET}"
 WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_URL") + WEBHOOK_PATH
 PORT = int(os.getenv("PORT", 10000))
 
-# Инициализация бота
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(storage=MemoryStorage())
-dp.include_router(router)
+dp.include_router(get_router())  # ← Получаем новый router на каждый запуск
 
-# FastAPI-приложение
 app = FastAPI()
 
 
