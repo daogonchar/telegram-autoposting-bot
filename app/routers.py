@@ -3,13 +3,13 @@ import tempfile
 import logging
 from aiogram import Router, F
 from aiogram.types import Message
-from aiogram.enums import ContentType
 from openai import AsyncOpenAI
 from httpx import AsyncClient
 from pydub import AudioSegment
 
 router = Router()
 
+# Инициализация OpenAI клиента (новая версия SDK)
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 http_client = AsyncClient()
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY, http_client=http_client)
@@ -38,6 +38,7 @@ async def handle_voice(message: Message, bot):
             )
 
         await message.answer(f"Расшифровка: {transcript.text}")
+
         os.remove(oga_path)
         os.remove(mp3_path)
 
