@@ -2,11 +2,12 @@
 
 import os
 import logging
+from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
-from dotenv import load_dotenv
+from aiogram.client.default import DefaultBotProperties
 import uvicorn
 
 from app.routers import router
@@ -19,12 +20,15 @@ WEBHOOK_PATH = f"/{WEBHOOK_SECRET}"
 WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_URL") + WEBHOOK_PATH
 PORT = int(os.getenv("PORT", 10000))
 
-# Инициализация бота
-bot = Bot(token=BOT_TOKEN, parse_mode=ParseMode.HTML)
+# ✅ Инициализация бота с parse_mode через DefaultBotProperties
+bot = Bot(
+    token=BOT_TOKEN,
+    default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+)
 dp = Dispatcher(storage=MemoryStorage())
 dp.include_router(router)
 
-# FastAPI приложение
+# FastAPI-приложение
 app = FastAPI()
 
 @app.on_event("startup")
