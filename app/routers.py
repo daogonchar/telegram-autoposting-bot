@@ -1,4 +1,5 @@
 # app/routers.py
+
 import os
 import tempfile
 import logging
@@ -9,36 +10,27 @@ from openai import AsyncOpenAI
 from httpx import AsyncClient
 from pydub import AudioSegment
 
-# Логгирование
-logging.basicConfig(level=logging.INFO)
-
-# Создание роутера
 router = Router()
 
-# Инициализация OpenAI Whisper
+# OpenAI и HTTPX клиент
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 http_client = AsyncClient()
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY, http_client=http_client)
 
-# Хендлер на команду /start
-@router.message(CommandStart(ignore_case=True, ignore_mention=True))
-async def cmd_start(message: Message):
-    await message.answer(
-        "👋 Добро пожаловать! Вы можете отправить текст или голосовое сообщение, "
-        "и я постараюсь помочь. Начнём?"
-    )
 
-# Хендлер на текстовые сообщения
+@router.message(CommandStart(ignore_mention=True))
+async def cmd_start(message: Message):
+    await message.answer("👋 Привет! Отправьте голосовое или текстовое сообщение.")
+
+
 @router.message(F.text)
 async def handle_text(message: Message):
-    logging.info(f"Текстовое сообщение от {message.from_user.id}: {message.text}")
-    await message.answer(f"Вы отправили текст: {message.text}")
+    await message.answer(f"Вы написали: {message.text}")
 
-# Хендлер на голосовые сообщения
+
 @router.message(F.voice)
 async def handle_voice(message: Message, bot):
     try:
-        logging.info(f"Голосовое сообщение от {message.from_user.id}")
         file_info = await bot.get_file(message.voice.file_id)
         file_path = file_info.file_path
 
@@ -60,5 +52,5 @@ async def handle_voice(message: Message, bot):
         os.remove(mp3_path)
 
     except Exception as e:
-        logging.exception("Ошибка при обработке голосового сообщения")
-        await message.answer("⚠️ Произошла ошибка при обработке голосового сообщения.")
+        logging.exception("Ошибка при расшифровке")
+        await message.answer("⚠️ Ошибка при обработке голосового.")
