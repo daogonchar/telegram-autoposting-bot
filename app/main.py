@@ -21,7 +21,10 @@ PORT = int(os.getenv("PORT", 10000))
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(storage=MemoryStorage())
-dp.include_router(router)  # ← Подключаем только здесь
+
+# 👇 Безопасное подключение
+if router.parent_router is None:
+    dp.include_router(router)
 
 app = FastAPI()
 
