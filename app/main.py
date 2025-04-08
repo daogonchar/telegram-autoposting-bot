@@ -9,7 +9,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.fsm.storage.memory import MemoryStorage
 import uvicorn
 
-from app.routers import router  # тут только импорт router
+from app.routers import router  # Только импорт router
 
 load_dotenv()
 
@@ -21,9 +21,7 @@ PORT = int(os.getenv("PORT", 10000))
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(storage=MemoryStorage())
-
-# ✅ Подключаем router ОДИН раз
-dp.include_router(router)
+dp.include_router(router)  # ← Подключаем только здесь
 
 app = FastAPI()
 
