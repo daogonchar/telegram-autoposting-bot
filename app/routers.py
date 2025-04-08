@@ -1,21 +1,36 @@
 # app/routers.py
+import os
+import tempfile
+import logging
 from aiogram import Router, F
+from aiogram.filters import CommandStart
 from aiogram.types import Message
 from openai import AsyncOpenAI
 from httpx import AsyncClient
 from pydub import AudioSegment
-import os, tempfile, logging
 
-router = Router()  # ← только создание router, никаких Dispatcher здесь
+# Создание роутера
+router = Router()
 
+# Инициализация OpenAI Whisper
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 http_client = AsyncClient()
 openai_client = AsyncOpenAI(api_key=OPENAI_API_KEY, http_client=http_client)
 
+# Хендлер на команду /start
+@router.message(CommandStart())
+async def cmd_start(message: Message):
+    await message.answer(
+        "👋 Добро пожаловать! Вы можете отправить текст или голосовое сообщение, "
+        "и я постараюсь помочь. Начнём?"
+    )
+
+# Хендлер на текстовые сообщения
 @router.message(F.text)
 async def handle_text(message: Message):
     await message.answer(f"Вы отправили текст: {message.text}")
 
+# Хендлер на голосовые сообщения
 @router.message(F.voice)
 async def handle_voice(message: Message, bot):
     try:
@@ -34,10 +49,10 @@ async def handle_voice(message: Message, bot):
                 model="whisper-1", file=audio_file
             )
 
-        await message.answer(f"Расшифровка: {transcript.text}")
+        await message.answer(f"🗣 Расшифровка: {transcript.text}")
         os.remove(oga_path)
         os.remove(mp3_path)
 
     except Exception as e:
         logging.exception("Ошибка при обработке голосового сообщения")
-        await message.answer("Произошла ошибка при обработке голосового сообщения.")
+        await message.answer("⚠️ Произошла ошибка при обработке голосового сообщения.")
