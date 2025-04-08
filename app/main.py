@@ -1,4 +1,5 @@
 # app/main.py
+
 import os
 import logging
 from dotenv import load_dotenv
@@ -10,6 +11,8 @@ from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.types import Update
 import uvicorn
 
+from app.routers import router
+
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -18,15 +21,20 @@ WEBHOOK_PATH = f"/{WEBHOOK_SECRET}"
 WEBHOOK_URL = os.getenv("RENDER_EXTERNAL_URL") + WEBHOOK_PATH
 PORT = int(os.getenv("PORT", 10000))
 
+# Инициализация бота
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(storage=MemoryStorage())
+dp.include_router(router)
 
-# 🚫 НЕ импортируем router на верхнем уровне, только внутри main
+# FastAPI-приложение
 app = FastAPI()
+
 
 @app.on_event("startup")
 async def on_startup():
     await bot.set_webhook(WEBHOOK_URL)
+    print("✅ Webhook установлен")
+
 
 @app.post(WEBHOOK_PATH)
 async def handle_webhook(request: Request):
@@ -35,9 +43,7 @@ async def handle_webhook(request: Request):
     await dp.feed_update(bot=bot, update=update)
     return {"ok": True}
 
-if __name__ == "__main__":
-    from app.routers import router  # 👈 импорт и подключение router только тут
-    dp.include_router(router)
 
+if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     uvicorn.run("app.main:app", host="0.0.0.0", port=PORT)
