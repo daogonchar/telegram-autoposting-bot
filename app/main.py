@@ -1,14 +1,15 @@
+# app/main.py
 import os
 import logging
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
 from aiogram import Bot, Dispatcher
 from aiogram.enums import ParseMode
-from aiogram.fsm.storage.memory import MemoryStorage
 from aiogram.client.default import DefaultBotProperties
+from aiogram.fsm.storage.memory import MemoryStorage
 import uvicorn
 
-from app.routers import router
+from app.routers import router  # тут только импорт router
 
 load_dotenv()
 
@@ -20,16 +21,18 @@ PORT = int(os.getenv("PORT", 10000))
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher(storage=MemoryStorage())
+
+# ✅ Подключаем router ОДИН раз
 dp.include_router(router)
 
 app = FastAPI()
 
 @app.on_event("startup")
 async def on_startup():
-    await bot.set_webhook(url=WEBHOOK_URL)
+    await bot.set_webhook(WEBHOOK_URL)
 
 @app.post(WEBHOOK_PATH)
-async def telegram_webhook(request: Request):
+async def handle_webhook(request: Request):
     update = await request.json()
     await dp.feed_update(bot=bot, update=update)
     return {"ok": True}
