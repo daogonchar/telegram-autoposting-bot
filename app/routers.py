@@ -56,3 +56,7 @@ async def handle_voice(message: Message, bot):
     except Exception as e:
         logging.exception("Ошибка при обработке голосового сообщения")
         await message.answer("⚠️ Произошла ошибка при обработке голосового сообщения.")
+@router.message()
+async def catch_all(message: Message):
+    logging.info(f"[UNHANDLED MESSAGE] {message.model_dump_json(indent=2)}")
+    await message.answer("🤖 Я получил сообщение, но пока не знаю, что с ним делать.")
