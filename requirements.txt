@@ -1,0 +1,7 @@
+fastapi
+python-dotenv
+uvicorn
+aiogram==3.5.0
+pydub
+openai==1.14.3
+httpx
