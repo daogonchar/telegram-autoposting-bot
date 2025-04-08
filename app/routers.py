@@ -1,13 +1,12 @@
-import os
-import tempfile
-import logging
+# app/routers.py
 from aiogram import Router, F
 from aiogram.types import Message
 from openai import AsyncOpenAI
 from httpx import AsyncClient
 from pydub import AudioSegment
+import os, tempfile, logging
 
-router = Router()
+router = Router()  # ← только создание router, никаких Dispatcher здесь
 
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 http_client = AsyncClient()
@@ -32,12 +31,10 @@ async def handle_voice(message: Message, bot):
 
         with open(mp3_path, "rb") as audio_file:
             transcript = await openai_client.audio.transcriptions.create(
-                model="whisper-1",
-                file=audio_file
+                model="whisper-1", file=audio_file
             )
 
         await message.answer(f"Расшифровка: {transcript.text}")
-
         os.remove(oga_path)
         os.remove(mp3_path)
 
