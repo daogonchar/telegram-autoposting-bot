@@ -23,6 +23,8 @@ bot = Bot(
     default=DefaultBotProperties(parse_mode=ParseMode.HTML)
 )
 dp = Dispatcher(storage=MemoryStorage())
+
+# ВАЖНО: не дублировать! router подключается только один раз!
 dp.include_router(router)
 
 app = FastAPI()
